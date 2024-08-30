@@ -1,7 +1,7 @@
 
 # Project Title
 
-A brief description of what this project does and who it's for
+Play jenga, and try to pull blocks from the tower without toppling it all!
 
 
 ## Screenshots
@@ -11,10 +11,10 @@ A brief description of what this project does and who it's for
 
 ## Features
 
-- Light/dark mode toggle
+- Select blocks and push or pull them with your mouse
 - Live previews
-- Fullscreen mode
-- Cross platform
+- Lower blocks are under pressure and experience more friction
+- Reset the tower
 
 
 ## Snippets
@@ -484,12 +484,4 @@ public class PlayerMovement : MonoBehaviour
 </details>
 
 
-## Optimizations
-
-What optimizations did you make in your code? E.g. refactors, performance improvements, accessibility
-
-
-## Demo
-
-Insert gif or link to demo
 
