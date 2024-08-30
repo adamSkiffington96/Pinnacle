@@ -6,7 +6,7 @@ Play jenga, and try to pull blocks from the tower without toppling it all!
 
 ## Screenshots
 
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
+![App Screenshot](https://i.imgur.com/8BaeHzL.jpeg)
 
 
 ## Features
