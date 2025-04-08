@@ -76,145 +76,53 @@ private void MoveBlock()
 ```
 </details>
 
-</details>
-
 <details>
-<summary><code>CameraController.cs</code></summary>
+<summary><code>CameraMovement</code></summary>
 
 ```
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class CameraController : MonoBehaviour
+private void CameraMovement()
 {
-    //private Camera _camera;
+    // Generic 1st person camera controller, follows player
+    //  - added smoothing
 
-    private Vector3 _movementInput = Vector3.zero;
-
-    private Vector3 _camRotation = Vector3.zero;
-
-    public float _panCameraSpeed = 100f;
-
-    public float _smoothingCamSpeed = 4f;
-
-    private bool _useMouseInput = true;
-
-    private int _initializedCamera = 10;
-
-    private void Start()
-    {
-        _movementInput = Vector3.zero;
-        _camRotation = transform.rotation.eulerAngles;
-    }
-
-    private void OnEnable()
-    {
-        _movementInput = Vector3.zero;
-        _camRotation = transform.rotation.eulerAngles;
-    }
-
-    private void Update()
-    {
-        CameraMovement();
-    }
-
-    public void ChangeMouseMovement(bool state)
-    {
-        _useMouseInput = state;
-    }
-
-    private void CameraMovement()
-    {
-        // Generic 1st person camera controller, follows player
-        //  - added smoothing
-
-        Vector3 input = Vector3.zero;
-        if(_useMouseInput == true) {
-            if(_initializedCamera <= 0) {
-                input = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), 0f);
-            }
-            else {
-                _initializedCamera--;
-            }
+    Vector3 input = Vector3.zero;
+    if(_useMouseInput == true) {
+        if(_initializedCamera <= 0) {
+            input = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), 0f);
         }
-
-        _movementInput = Vector3.Lerp(_movementInput, input, _smoothingCamSpeed * Time.deltaTime);
-
-        float _pitch = Mathf.Clamp(_camRotation.x + (-_movementInput.y * _panCameraSpeed * Time.deltaTime * 10f), -90f, 45f);
-
-        float _yaw = _camRotation.y + (_movementInput.x * _panCameraSpeed * Time.deltaTime * 10f);
-
-        _camRotation = new Vector3(_pitch, _yaw, 0f);
-
-        transform.eulerAngles = _camRotation;
+        else {
+            _initializedCamera--;
+        }
     }
+
+    _movementInput = Vector3.Lerp(_movementInput, input, _smoothingCamSpeed * Time.deltaTime);
+
+    float _pitch = Mathf.Clamp(_camRotation.x + (-_movementInput.y * _panCameraSpeed * Time.deltaTime * 10f), -90f, 45f);
+
+    float _yaw = _camRotation.y + (_movementInput.x * _panCameraSpeed * Time.deltaTime * 10f);
+
+    _camRotation = new Vector3(_pitch, _yaw, 0f);
+
+    transform.eulerAngles = _camRotation;
 }
-
 ```
-</details>
-
 </details>
 
 <details>
-<summary><code>TowerManager.cs</code></summary>
+<summary><code>FancyTowerColor</code></summary>
 
 ```
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class TowerManager : MonoBehaviour
+private void ModifyColors()
 {
-    public PlayerController _playerController;
-
-    private bool _holdingBlock = false;
-
-    public Transform _tower;
-
-    public Color _lighterColor;
-
-    private float lighterColorChance = 0.33f;
-
-
-    private void Start()
+    //Overlay tower with color
+    foreach(Transform layer in _tower)
     {
-        ModifyColors();
-    }
-
-    public void ToggleHolding()
-    {
-        if (_holdingBlock == true)
-            _holdingBlock = false;
-        else
-            _holdingBlock = true;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        // Deselect blocks once they drop below ground level
-
-        if (other.CompareTag("Block"))
+        foreach (Transform block in layer)
         {
-            if (_holdingBlock)
+            if (Random.Range(0f, 1f) <= lighterColorChance)
             {
-                _playerController.DeselectBlock();
-            }
-        }
-    }
-
-    private void ModifyColors()
-    {
-        //Overlay tower with color
-        foreach(Transform layer in _tower)
-        {
-            foreach (Transform block in layer)
-            {
-                if (Random.Range(0f, 1f) <= lighterColorChance)
-                {
-                    Material altMaterial = block.GetComponent<Renderer>().material;
-                    altMaterial.color = _lighterColor;
-                }
+                Material altMaterial = block.GetComponent<Renderer>().material;
+                altMaterial.color = _lighterColor;
             }
         }
     }
@@ -223,32 +131,11 @@ public class TowerManager : MonoBehaviour
 ```
 </details>
 
-</details>
-
 <details>
-<summary><code>PlayerMovement.cs</code></summary>
+<summary><code>PlayerMovement</code></summary>
 
 ```
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class PlayerMovement : MonoBehaviour
-{
-    public float _moveSpeed = 1f;
-
-    private bool _suspendMovement = false;
-
-
-    public void ToggleMovement()
-    {
-        if(_suspendMovement == false)
-            _suspendMovement = true;
-        else
-            _suspendMovement = false;
-    }
-
-    private void Update()
+private void Update()
     {
         // WASD - Horizontal movement
         // CTRL/SHIFT - Vertical movement
@@ -262,7 +149,6 @@ public class PlayerMovement : MonoBehaviour
             transform.position += (_moveSpeed * Time.smoothDeltaTime * newMovement);
         }
     }
-}
 
 ```
 </details>
