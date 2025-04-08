@@ -22,270 +22,54 @@ Play jenga, and try to pull blocks from the tower without toppling it all!
 </details>
 
 <details>
-<summary><code>PlayerController.cs</code></summary>
+<summary><code>Move Block</code></summary>
 
 ```
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-
-public class PlayerController : MonoBehaviour
+private void MoveBlock()
 {
-    public float _rayMaxDistance = 10f;
+    if(_selectedBlock == null)
+        return;
 
-    private LayerMask _rayLayerMask;
+    float _mouseXInput = Input.GetAxis("Mouse X");
+    float _mouseYInput = Input.GetAxis("Mouse Y");
 
-    private Outline _lastOutline;
+    _pushPower = Mathf.Clamp(_mouseYInput, 0f, 1f);
 
-    private Material _lastMaterial;
+    // If we try to push (mouse forward) and are looking at a block,
+    //  - push that block in our lookDirection
+    //  - push harder the faster you shoot the mouse forward
+    //  - add a resistant force the lower down the block is in the tower
 
-    public Color _emissionColorChange;
+    if (Input.GetMouseButton(0)) {
+        if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, _rayMaxDistance, _rayLayerMask)) {
+            if(hit.collider.transform == _selectedBlock) {
 
-    private Transform _highlightedBlock;
+                Vector3 _inputVector = 100f * _mouseYInput * _cam.forward.normalized;
 
-    private Transform _selectedBlock;
+                _lastBlockRigidbody.AddForceAtPosition(_blockMoveSpeed * Time.smoothDeltaTime * _inputVector, hit.point);
 
-    private List<Rigidbody> _nearbySelectedBlocks;
-
-    private int _skipNearbyIterations = 2;
-    private int _nearbyIterations = 0;
-
-    private bool _holdingBlock = false;
-
-    public float _blockMoveSpeed = 1f;
-    public float _nearBlockMoveSpeed = 1f;
-
-    public float _blockChangeHeightSpeed = 1f;
-
-    private PlayerMovement _playerMovement;
-
-    private CameraController _cameraController;
-
-    private Rigidbody _lastBlockRigidbody;
-
-    private float _resetCounter = 0f;
-
-    public Transform _tower;
-
-    private Transform _newTower;
-
-    private Transform _cam;
-
-    private bool _resetTower = false;
-
-    public TowerManager _towerManager;
-
-    public Text _debugText;
-
-    private float _pushPower = 0f;
-
-
-    void Start()
-    {
-        _cam = Camera.main.transform;
-
-        _tower.gameObject.SetActive(false);
-        _newTower = Instantiate(_tower);
-        _newTower.gameObject.SetActive(true);
-
-        _cameraController = GetComponent<CameraController>();
-        _playerMovement = GetComponent<PlayerMovement>();
-        _rayLayerMask = LayerMask.GetMask("Raycasting");
-
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
-    }
-
-    void Update()
-    {
-        ControlInput();
-    }
-
-    private void ControlInput()
-    {
-        // Determine if we are looking at a block
-
-        bool raycasting = HighlightSystem();
-
-        // Grab a block on mouse down
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (_holdingBlock == false)
-            {
-                if (raycasting)
+                if(_nearbyIterations >= _skipNearbyIterations)
                 {
-                    _selectedBlock = _highlightedBlock;
-                    print("Selected block: " + _selectedBlock.name + " " + _selectedBlock.GetSiblingIndex() + " in layer " + _selectedBlock.parent.GetSiblingIndex());
+                    _nearbySelectedBlocks = _selectedBlock.GetComponent<NearbyObjects>().GetObjects();
 
-                    _lastBlockRigidbody = _selectedBlock.GetComponent<Rigidbody>();
+                    if (_nearbySelectedBlocks.Count > 0)
+                    {
+                        float blockLayerModifier = 1f - (_selectedBlock.parent.GetSiblingIndex() / 17f);
 
-                    _towerManager.ToggleHolding();
+                        foreach (Rigidbody nearBlock in _nearbySelectedBlocks)
+                        {
+                            _debugText.text = "Layer power modifier: " + blockLayerModifier;
 
-                    _cameraController.ChangeMouseMovement(false);
-
-                    _holdingBlock = true;
-                }
-            }
-            else
-            {
-                _cameraController.ChangeMouseMovement(false);
-            }
-        }
-
-        //  If we're holding a block, continue moving it around
-
-        if (_holdingBlock)
-        {
-            MoveBlock();
-        }
-
-        if (Input.GetMouseButtonUp(0))
-        {
-            _cameraController.ChangeMouseMovement(true);
-        }
-
-        // Reset tower
-
-        if (Input.GetKey(KeyCode.R))
-        {
-            if (_resetTower == false)
-            {
-                if (_resetCounter < 3f)
-                {
-                    _resetCounter += Time.deltaTime;
+                            nearBlock.AddForce((blockLayerModifier * _nearBlockMoveSpeed * _pushPower) * Time.smoothDeltaTime * _inputVector);
+                        }
+                    }
                 }
                 else
                 {
-                    _newTower.gameObject.SetActive(false);
-                    _newTower = null;
-                    _newTower = Instantiate(_tower);
-                    _newTower.gameObject.SetActive(true);
-
-                    _resetTower = true;
-                    _resetCounter = 0f;
+                    _nearbyIterations++;
                 }
             }
         }
-        if (Input.GetKeyUp(KeyCode.R))
-        {
-            _resetTower = false;
-        }
-    }
-
-    public void DeselectBlock()
-    {
-        // Release a block
-        if (_selectedBlock != null) {
-            print("Un-selected block: " + _selectedBlock.name + " " + _selectedBlock.GetSiblingIndex() + " in layer " + _selectedBlock.parent.GetSiblingIndex());
-
-            _selectedBlock = null;
-        }
-
-        _towerManager.ToggleHolding();
-
-        if (_lastBlockRigidbody != null)
-            _lastBlockRigidbody = null;
-
-
-        if(_holdingBlock == true)
-            _holdingBlock = false;
-
-        ClearHighlighted();
-    }
-
-    private void MoveBlock()
-    {
-        if(_selectedBlock == null)
-            return;
-
-        float _mouseXInput = Input.GetAxis("Mouse X");
-        float _mouseYInput = Input.GetAxis("Mouse Y");
-
-        _pushPower = Mathf.Clamp(_mouseYInput, 0f, 1f);
-
-        // If we try to push (mouse forward) and are looking at a block,
-        //  - push that block in our lookDirection
-        //  - push harder the faster you shoot the mouse forward
-        //  - add a resistant force the lower down the block is in the tower
-
-        if (Input.GetMouseButton(0)) {
-            if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, _rayMaxDistance, _rayLayerMask)) {
-                if(hit.collider.transform == _selectedBlock) {
-
-                    Vector3 _inputVector = 100f * _mouseYInput * _cam.forward.normalized;
-
-                    _lastBlockRigidbody.AddForceAtPosition(_blockMoveSpeed * Time.smoothDeltaTime * _inputVector, hit.point);
-
-                    if(_nearbyIterations >= _skipNearbyIterations)
-                    {
-                        _nearbySelectedBlocks = _selectedBlock.GetComponent<NearbyObjects>().GetObjects();
-
-                        if (_nearbySelectedBlocks.Count > 0)
-                        {
-                            float blockLayerModifier = 1f - (_selectedBlock.parent.GetSiblingIndex() / 17f);
-
-                            foreach (Rigidbody nearBlock in _nearbySelectedBlocks)
-                            {
-                                _debugText.text = "Layer power modifier: " + blockLayerModifier;
-
-                                nearBlock.AddForce((blockLayerModifier * _nearBlockMoveSpeed * _pushPower) * Time.smoothDeltaTime * _inputVector);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _nearbyIterations++;
-                    }
-                }
-            }
-        }
-    }
-
-    private bool HighlightSystem()
-    {
-        // Highlight the current block we're looking at
-        bool raycasting = false;
-
-        if (_holdingBlock)
-            return false;
-
-        if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out RaycastHit hit, _rayMaxDistance, _rayLayerMask)) {
-            if (_highlightedBlock != null) {
-                ClearHighlighted();
-            }
-
-            _lastMaterial = hit.transform.GetComponent<Renderer>().material;
-            _lastMaterial.SetColor("_EmissionColor", _emissionColorChange);
-            _lastOutline = hit.transform.GetComponent<Outline>();
-            _lastOutline.enabled = true;
-
-            _highlightedBlock = hit.transform;
-
-            Debug.Log(hit.collider.gameObject.name);
-
-            raycasting = true;
-        }
-        else {
-            if (_highlightedBlock != null) {
-                ClearHighlighted();
-            }
-        }
-
-        return raycasting;
-    }
-
-    private void ClearHighlighted()
-    {
-        if(_lastOutline.enabled)
-            _lastOutline.enabled = false;
-        _lastOutline = null;
-
-        _lastMaterial.SetColor("_EmissionColor", Color.black);
-        _lastMaterial = null;
-
-        _highlightedBlock = null;
     }
 }
 
